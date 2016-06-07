@@ -1,0 +1,701 @@
+<html ng-app="playerApp">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+    <script type="text/javascript" src="http://netdna.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+    <link href="http://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+    <script type="text/javascript" src="http://www.parsecdn.com/js/parse-latest.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular.min.js"></script>
+    <script src='http://cdnjs.cloudflare.com/ajax/libs/gsap/1.12.1/TweenMax.min.js'></script>
+    <script src="js/bounceb.js" type="text/javascript"></script>
+    <script src="js/indexModel.js" type="text/javascript"></script>
+    <link href="player.css" rel="stylesheet" type="text/css">
+    <!-- ScrollTo plugin -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/1.18.5/plugins/CSSPlugin.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/1.18.5/plugins/ScrollToPlugin.min.js"></script>
+
+    <script type="text/javascript">
+    Parse.initialize("egEmUBm4OD6b1DwWMaDu73NpyanF8uzq7RS3pj3j", "Tw6fy7l214kpuUQreCOiLRJ3QMe4j5YCb7cWPOw5");
+	
+	var VKId;
+	var VKMusic={}
+	var testVar;
+	var toggleVKSearchEnabled=false;
+
+	mousewheelevt = (/Firefox/i.test(navigator.userAgent)) ? "DOMMouseScroll" : "mousewheel"
+	// $(".playlist, #youtube, #stats, #bgChanger, #uploadFrameDisplayer").on(mousewheelevt, function(e) {
+	//     e.stopPropagation();
+	// });
+	// $("#lyricsHolder").on(mousewheelevt, function(e) {
+	//     e.stopPropagation();
+	// });
+
+	setTimeout(function() {
+	  var el = document.createElement("script");
+	  el.type = "text/javascript";
+	  el.src = "https://vk.com/js/api/openapi.js";
+	  el.async = true;
+	  el.id="vkscript"
+	  el.onload=function(){
+	  	initiateVK()
+	  };
+	  document.getElementsByTagName('body')[0].appendChild(el);
+	}, 0);
+
+	function initiateVK() {
+	    VK.init({
+	      apiId: 4148557
+	    });
+	    loginVK(); //alert("wonder");
+	  };
+	  // setTimeout(function() {
+	  //   loginVK();
+	  // }, 8000);
+	  function loginVK(){//window.scrollTo(0, 1);//alert("triggered"); 
+	  VK.Auth.getLoginStatus(function(answer){console.log(answer);
+	  if(answer.status=="connected" && answer.session!=null)
+	  {
+	    VKgetMusic(answer);
+	  }
+	    else
+	      {
+	        VK.Auth.login(authInfoVK,8); //alert("hi");
+	      }
+	  });
+	}
+	  function authInfoVK(response) { console.log(response);
+	  if (response.session) {
+	  		testVar = response
+	    //alert('user: '+response.session.mid);console.log(response.settings);
+	        setTimeout(function() 
+	                  {
+	                     VKId=response.session.mid;
+	                     VKgetMusic(response);
+	                   }, 0)
+	        }
+	   else {
+	    //alert('not auth');
+	  }
+	}
+	function VKgetMusic(source)
+	{
+	  loginSuccessful()
+	  VK.api("audio.get", {uid:VKId}, function(data) {console.log(data);
+	    VKMusic = JSON.parse(decodeHTMLEntities(JSON.stringify(data))); 
+	    refreshAngular(VKMusic);
+	 })
+	}
+	 function searchLyricsVK(name, source)
+	 {
+	   VK.api("audio.search", {q:name, auto_complete:1, lyrics:1, performer_only:0, sort:2, search_own:0, offset:0,count:10}, function(response){
+	      console.log(response); 
+	          function displayNoLyrics()
+	          {
+	           $("#lyricsContainer").empty(); 
+	           strTempTemp='No Lyrics found. Sorry(:';
+	           $("#lyricsContainer").append(strTempTemp); 
+	           console.log('No Lyrics found. Sorry(:')
+	           $("#lyricsShowButton").addClass("disabled")
+	          }
+	          if(response.response.length==1)//not found
+	          {
+	             displayNoLyrics();
+	          }
+	          else if(response.response[1].lyrics_id!=null && response.response.length>=2)//found
+	          {
+	           //console.log(response.response);
+	              var foundLongLyrics=false;
+	              //for(var i=0, l=response.response.length; i<l;i++)
+	              var count=0;
+	              function fetchLyrics()
+	              {
+	                if(count<response.response.length)
+	                { 
+	                  if(foundLongLyrics){}
+	                  else
+	                  {
+	                    VK.api("audio.getLyrics", {lyrics_id:response.response[count+1].lyrics_id}, checkLength);
+	                    count++;
+	                  }
+	                }
+	              } 
+	              fetchLyrics();
+	              function checkLength(lyrResp)
+	              {//console.log(lyrResp);//alert("called");
+	              if(lyrResp.response)
+	               { 
+	                  if(lyrResp.response.text.length>500)
+	                  {
+	                    console.log(foundLongLyrics);
+	                    foundLongLyrics=true;
+	                   $("#lyricsContainer").empty();
+	                   $("#lyricsContainer").append(lyrResp.response.text.replace(/\n/g, '<br />'));
+	                   console.log(lyrResp.response.text.replace(/\n/g, '<br />'))
+	                   // console.log(lyrResp.response.text.length);
+	                   // $(".lyricsHolder").animate({ scrollTop: 0}, 'slow');
+	                   scrollTo(lyricsContainer, 0)
+	                   $("#lyricsShowButton").removeClass("disabled")
+	                  }
+	                  else fetchLyrics();
+	                }
+	              else return false;//error received
+	              }
+	              setTimeout(function(){ 
+	                                    console.log("found",foundLongLyrics);
+	                                    if(!foundLongLyrics)
+	                                    {
+	                                      displayNoLyrics();
+	                                    }
+	                      }
+	              , 1000);
+	          }
+	  }) //http://vk.com/dev/audio.search
+	     
+	 }
+	function toggleVKSearchEnabler()
+	{ 
+	  if(!toggleVKSearchEnabled)
+	  {
+	  toggleVKSearchEnabled=true;
+	  $("#VKSearchEnabler").addClass("buttonPressed");
+	  $( "#tags" ).autocomplete({
+	      source: "VK"//$.merge(forMerge, cleanedArr)
+	    });
+	  }
+	  else
+	  {
+	    toggleVKSearchEnabled=false; 
+	    $("#VKSearchEnabler").removeClass("buttonPressed");
+	    feedAutoComplete();
+	  }
+	}
+	function handleVKAdding(id,owner_id)
+	{//alert('handleVKAdding');
+	  VK.api("audio.add", {aid:id, oid:owner_id}, function(data){
+	    VKgetMusic("handleVKAdding");
+	  });
+	}
+
+
+
+	var playerApp = angular.module('playerApp', []);
+
+	// Define the `PhoneListController` controller on the `playerApp` module
+	playerApp.controller('playerController', function playerController($scope) {
+	  $scope.response = [
+	    {
+	      artist: 'Johann Sebastian Bach',
+	      title: 'Prelude in C major',
+	      url:'https://www.dropbox.com/s/kavovoai0jwpj38/amclassical_prelude_in_c_major_bwv_846a.mp3?dl=1'
+	    }, {
+	      artist: 'Wolfgang Mozart',
+	      title: 'Adagio for Glass Harmonica',
+	      url:'https://www.dropbox.com/s/wiap2pkf6344obr/amclassical_mozart_adagio.mp3?dl=1'
+	    }, {
+	      artist: 'Johann Sebastian Bach',
+	      title: ' Jesu Joy of Man\'s Desiring',
+	      url:'https://www.dropbox.com/s/l3mpp1awychq2h4/amclassical_jesu_joy_of_mans_desiring.mp3?dl=1'
+	    }
+	  ];
+	  $scope.refresh = function(value){
+	  	$scope.response=value;
+	  	$scope.$apply();
+	  	// $scope.response = Storage.get();
+	  }
+	  $scope.getPictureAndPlay = function(value,el){
+	  	changeActive(el.$index)
+	  	Player.play(el.music.url, el.$index)
+	  	searchLyricsVK(el.music.artist+" "+el.music.title)
+	  	Loader.showLoader()
+	  	getPictureAndPlay(value);
+	  }
+	  $scope.playAt=function(index){
+	  	var first = $scope.response[index]
+	  	$scope.getPictureAndPlay(first.artist, {music:{url:first.url},$index:index})
+	  }
+	  $scope.orderList = "artist";
+	});
+
+	function refreshAngular(VKMusic){
+		angular
+		        .element(document.querySelector('[ng-controller="playerController"]'))
+		        .scope().refresh(VKMusic.response)
+	}
+	function getPictureAndPlay(artist) {
+		 Parse.Cloud.run('searchArtist', {artist:encodeURIComponent(artist)}, { 
+		 	success: function (result) {
+		 		// console.log(result)
+		 		var parsed = JSON.parse(result)
+		 		console.log(parsed)
+		 		if(!parsed.artist){
+		 			$("#image img").attr("src", "player.svg")
+		 			return
+		 		}
+		 		var url = parsed.artist.image[4]
+		   		console.log(url)	 
+		   		 if(url["#text"] && url["#text"].length>1) $("#image img").attr("src", url["#text"])
+		   		 else $("#image img").attr("src", "player.svg")
+		   	} ,
+		   	error:function (result) {
+		   		console.log(result)	  
+		   	}
+		   });
+	}
+
+	function loginSuccessful(){
+		VK.api('users.get', {
+		       user_ids: VK._session.mid,
+		       fields: "photo_50,city,verified"
+		   }, function(data) {
+		   		console.log(data)
+		       $("#logoutButton").html('<a href="#">Log out'+" "+data.response[0].first_name+" "+data.response[0].last_name+'</a>');
+		   });
+
+		$("#logoutButton").show()
+		$("#loginButton").hide()
+	}
+	function logoutSuccessful(){
+		$("#loginButton").show()
+		$("#logoutButton").hide()
+	}
+
+	var Loader={
+		img:null,
+		showLoader:function(){
+			Loader.img.attr("src", "circle.svg")
+
+		}
+	}
+
+	var Player={
+		playing:false,
+		index:0,
+		audio:null,
+		position:0,
+		autoNext:true,
+		pause:function(){
+			Player.position = Player.audio.currentTime;
+			Player.audio.pause(); 
+			showPlayIcon(null,true)	
+			Player.playing=false
+		},
+		play:function(url,indx){
+			if(Player.audio) Player.audio.src=url
+		    else Player.audio = new Audio(url);
+			Player.audio.addEventListener("progress", Player.progressUpdate, false);
+			Player.audio.addEventListener("timeupdate", Player.timeupdateSong, false);
+			Player.audio.addEventListener("ended", Player.songEnded, false);
+			Player.audio.addEventListener("error", Player.errorLoading, false)
+			Player.audio.play(); 
+			showPlayIcon(null,false)
+			$("#barsCont").click(Player.seekbarMouseUp)
+			Player.playing=true
+			Player.index = indx
+		},
+		continue:function(){
+			Player.audio.play(Player.position);
+			Player.playing=true
+			showPlayIcon(null,false)
+		}, 
+		bufferBar: "#buffer .progress-bar",
+		currentProgress:"#currentProgress .progress-bar",
+		progressUpdate:function(){
+		    if (Player.audio.buffered.length > 0) {
+		        var percent = (Player.audio.buffered.end(0) / Player.audio.duration) * 100;
+		        $(Player.bufferBar).css({
+		            width: percent + "%"
+		        });
+		    }
+		},
+		isBeingAnimated:false,
+		seeking:false,
+		timeupdateSong:function() {
+		        if (!Player.isBeingAnimated) {
+		            if (Player.seeking == false) {
+		                var timePercent = (Player.audio.currentTime / Player.audio.duration) * 100;
+		                $(Player.currentProgress).css({
+		                    width: timePercent + "%"
+		                });
+		                timePercent=Math.floor( timePercent );
+		                if(timePercent/10 % 2 === 0 && timePercent>1) lyricsScroll(timePercent)
+		            }
+		        }
+		        // if (controls.timeProgress != null || controls.timeProgress != undefined) {
+		        //     $(controls.timeProgress).text(((Math.floor(this.currentTime / 60)) < 10 ? "0" + Math.floor(this.currentTime / 60) : Math.floor(this.currentTime / 60)) + ":" + ((this.currentTime - (Math.floor(this.currentTime / 60)) * 60) < 10 ? "0" + Math.floor(this.currentTime - (Math.floor(this.currentTime / 60)) * 60) : Math.floor(this.currentTime - (Math.floor(this.currentTime / 60)) * 60)));
+		        // }
+		}, 
+		errorLoading:function(e){
+			console.log(e)
+			Player.songEnded()
+		},
+		seekbarMouseUp:function(e) {
+		    var relX = Math.round(((e.pageX - $("#barsCont").offset().left) / $("#barsCont").width()) * 100);
+		    relX = relX > 100 ? 100 : relX;
+
+		    try {
+		        Player.audio.currentTime = (relX * Player.audio.duration) / 100;
+		    } catch (e) {
+		        console.log("Please wait until music is loaded");
+		    }
+		    //------------------------------------------------------------------------
+		    $(Player.currentProgress).css({
+		        width: relX + "%"
+		    });
+
+		    Player.isBeingAnimated = true;
+		    setTimeout(function() {
+		        Player.isBeingAnimated = false;
+		    }, 350);
+
+		    Player.seeking = false;
+		    if (Player.audio.paused) {
+		        Player.continue()
+		    }
+		    // document.removeEventListener("mousemove", seekbarMouseMove, false);
+		    // document.removeEventListener("mouseup", seekbarMouseUp, false);
+		    // // $(controls.indicator).css('z-index', -100);
+		    // $(controls.indicator).hide();
+		},
+		songEnded:function(){
+		    // console.log("song ended");
+		    if (Player.repeat == 0 && Player.index >= VKMusic.response.length - 1) {
+		        Player.pause()
+		    } else if (Player.repeat == 1) {
+		        Player.audio.currentTime = 0;
+		        Player.play();
+		    } else {
+		        if (!Player.autoNext) {
+		            Player.pause();
+		            return
+		        }
+		        Player.index = (Player.index >= VKMusic.response.length - 1)?0:Player.index+1
+		        // Player.play(VKMusic.response[Player.index].url, Player.index)
+		        angular
+		        	.element(document.querySelector('[ng-controller="playerController"]'))
+		            .scope().playAt(Player.index)
+		        console.log(VKMusic.response[Player.index], Player.index)
+		    }
+		}
+	}
+
+	function scrollTo(div, y){
+		return TweenMax.to(div, 2, {scrollTo:{y:y}, ease:Power2.easeOut});
+	}
+	function lyricsScroll(percent) {
+		console.log("lyricsScroll",percent)
+		if($('#lyricsContainer:hover').length==0) scrollTo(lyricsContainer, (lyricsContainer.scrollHeight/100*percent-lyricsContainer.offsetHeight/2))
+	}
+	function flipArtwork(toShow, toHide){
+		$("#"+toShow).css("transform", "")
+		TweenMax.to(document.getElementById(toHide), 0.5, {x:-100, opacity:0 , ease:Power1.easeInOut ,repeat:0,
+		onComplete:function(){
+			$("#"+toHide).hide();
+			TweenMax.to(document.getElementById(toHide), 0.1, {x:0, opacity:1 , ease:Power1.easeInOut ,repeat:0})
+			// $("#"+toHide).css("transform", "")
+			// $("#"+toHide).css("opacity", "1")
+			// $("#"+toShow).fadeIn("slow");
+			$("#"+toShow).show();
+			TweenMax.fromTo(document.getElementById(toShow), 0.5, {x:100, opacity:0}, {x:0, opacity:1});
+		}
+		  });
+
+	}
+	function showPlayIcon($animation,bool){
+		if(!$animation) $animation = $("#animation")
+		playShown = bool
+		$animation.attr({
+		   "from": bool ? play : pause,
+		   "to": bool ? pause : play
+		}).get(0).beginElement();
+	}
+
+	var playShown = false
+	function initiMorphPlayPause(classReceived, animation){
+	   pause = "M11,10 L18,13.74 18,22.28 11,26 M18,13.74 L26,18 26,18 18,22.28",
+	   play = "M11,10 L17,10 17,26 11,26 M20,10 L26,10 26,26 20,26",
+	   $animation = $(animation);
+
+	   showPlayIcon($animation, true)
+
+		$("."+classReceived).on('click', function() {
+		   // if(playShown)
+		   playShown = !playShown;
+		   showPlayIcon($animation, playShown)
+		   if(playShown) Player.pause()
+		   else Player.continue()
+
+		});
+
+	}
+	function progressCircle(percent){
+		  var val = percent;
+		  var $circle = $('#svg #bar');
+		  
+		  if (isNaN(val)) {
+		   val = 100; 
+		  }
+		  else{
+		    var r = $circle.attr('r');
+		    var c = Math.PI*(r*2);
+		   
+		    if (val < 0) { val = 0;}
+		    if (val > 100) { val = 100;}
+		    
+		    var pct = ((100-val)/100)*c;
+		    
+		    $circle.css({ strokeDashoffset: pct});
+		    
+		    $('#cont').attr('data-pct',Math.floor(val));
+		  }
+	}
+
+	function volume(vol) {
+	    vol = vol > 100 ? 100 : vol < 0 ? 0 : vol;
+	    Player.audio.volume = vol / 100;
+	    progressCircle(vol)
+	    console.log(vol)
+	    // volumePercent = vol;
+	    // $(controls.volumeLevel).css({
+	    //     width: vol + "%"
+	    // });
+	    // setCookie("volumeOfPlayer", vol, 365);
+	}
+	function volumeScroll(e) {
+			if(!Player.audio) return
+	    // if (scrollVolumeOn) {
+	        scrollVolControl = Player.audio.volume * 100;
+	        var e = window.event || e;
+	        var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
+	        delta > 0 ? scrollVolControl += 1 : scrollVolControl -= 1;
+	        volume(scrollVolControl);
+	    // }
+	}
+
+	function changeActive(index){
+		$(".listItem").removeClass("activeItem")
+		var item = $(".listItem")[index]
+		$(item).addClass("activeItem")
+	}
+	jQuery(document).ready(function() {
+			try{
+				if(!VK){
+					console.log("VK", angular.element(document.querySelector('[ng-controller="playerController"]')).scope().response)
+					VKMusic.response=angular
+						        .element(document.querySelector('[ng-controller="playerController"]'))
+						        .scope().response
+				}
+			}
+			catch(e){
+				console.log(e)
+				VKMusic.response=angular
+					        .element(document.querySelector('[ng-controller="playerController"]'))
+					        .scope().response
+			}
+			// initiateVK()
+			initBounceButtons("#image img")
+			// initToggling({class:"toggPlay"})
+			initiMorphPlayPause("ytp-play-button", "#animation")
+			Loader.img = $("#image img")
+			$('#cont').on(mousewheelevt, volumeScroll);
+			var lock=false;
+			var timer;
+			$('body').on(mousewheelevt, function(){
+				if(timer){timer.clear()}
+				if(!lock){
+					lock=true
+					$('#cont').fadeIn();
+					time = setTimeout(function(){
+						$('#cont').fadeOut(function(){lock=false});
+					}, 3000)
+					
+				}
+			});
+			$("#ulMain, #cont, #lyricsContainer").on(mousewheelevt, function(e){e.stopPropagation()});
+			//____________________________
+		    $('.search-panel .dropdown-menu').find('a').click(function(e) {
+				e.preventDefault();
+				var param = $(this).attr("href").replace("#","");
+				var concept = $(this).text();
+				$('.search-panel span#search_concept').text(concept);
+				$('.input-group #search_param').val(param);
+			});
+		    //____________________________
+			$( "#query" ).on('input',function() {
+				console.log($( this ).val().length)
+			  if($( this ).val().length>0){
+			  	$( this ).addClass("opacityFull")
+			  	Player.autoNext=false
+			  } else{
+			  	$( this ).removeClass("opacityFull")
+			  	Player.autoNext=true
+			  }
+			});
+		}
+	);
+
+    </script>
+</head>
+
+<body ng-controller="playerController">
+    <div class="navbar navbar-default navbar-static-top">
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar-ex-collapse"><span class="sr-only">Toggle navigation</span><span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span></button><a class="navbar-brand" href="#"><span>VKPLayer</span></a></div>
+            <div class="collapse navbar-collapse" id="navbar-ex-collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li id="loginButton"class="" onclick="initiateVK()"><a href="#"><i class="fa fa-1x fa-fw fa-vk"></i> Connect</a></li>
+                    <li id="logoutButton" onclick="VK.Auth.logout();logoutSuccessful()"><a href="#">Log out</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="section">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="section">
+                        <div class="container">
+                            <div class="row mainRow">
+                                <div class="col-md-4">
+                                <!-- <input type="text" id="query" ng-model="query"> -->
+                        		    <div class="listSearch">
+                                        <input type="hidden" name="search_param" value="all" id="search_param">         
+                                        <input type="text" class="form-control" name="x" placeholder="Title or artist..." id="query" ng-model="query">
+                                    </div>
+                                    <ul id="ulMain">
+                                      <li ng-repeat="music in response | filter:query" class="listItem" ng-click="getPictureAndPlay(music.artist, this)"><!-- class="listItem" -->
+                                        <span>{{music.title}}</span>
+                                        <p>{{music.artist}}</p>
+                                        <hr>
+                                      </li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-8">
+                                	<div class="btn-group imageMainControls">
+                                	              <a href="#" class="btn btn-default" onclick="flipArtwork('artwork', 'lyricsContainer')"><i class="fa fa-fw fa-image"></i><br></a>
+                                	              <a href="#" id="lyricsShowButton" class="btn btn-default disabled" onclick="flipArtwork('lyricsContainer', 'artwork')"><i class="fa fa-fw fa-font"></i></a>
+                                	 </div>
+                                	<div id="lyricsContainer"></div>
+                                	<!-- <div class="overImg"><i class="fa fa-5x fa-music"></i></div> -->
+                                  <a id="image"><img id="artwork" src="player.svg" class="img-responsive"></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer class="section section-primary">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+	                <div class="section">
+	                  <div class="container">
+	                    <div class="row">
+	                      <div class="col-md-1">
+	                      <button class="ytp-play-button ytp-button btn" aria-live="assertive" tabindex="32" aria-label="Pause">
+	                         <svg width="100%" viewBox="0 0 36 36" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	                            <defs>
+	                               <path id="ytp-12" d="M 11 10 L 17 10 L 17 26 L 11 26 M 20 10 L 26 10 L 26 26 L 20 26">
+	                                  <animate id="animation" begin="indefinite" attributeType="XML" attributeName="d" fill="freeze" from="M11,10 L17,10 17,26 11,26 M20,10 L26,10 26,26 20,26" to="M11,10 L18,13.74 18,22.28 11,26 M18,13.74 L26,18 26,18 18,22.28" dur="0.1s" keySplines=".4 0 1 1"
+	                                  repeatCount="1"></animate>
+	                               </path>
+	                            </defs>
+	                            <use xlink:href="#ytp-12" class="ytp-svg-shadow"></use>
+	                            <use xlink:href="#ytp-12" class="ytp-svg-fill"></use>
+	                         </svg>
+	                      </button>
+	                        <!-- <a id="playButton" class="btn btn-primary toggPlay" onclick="Player.continue()"><i class="fa fa-fw fa-play"></i></a>
+	                        <a id="pauseButton" class="btn btn-primary toggPlay" onclick="Player.pause()"><i class="fa fa-fw fa-pause"></i></a> -->
+	                      </div>
+	                      <div class="col-md-11" id="barsCont">
+	                        <div class="progress" id="buffer">
+	                          <div class="progress-bar" role="progressbar" style="width: 60%;"></div>
+	                        </div>
+	                        <div class="progress" id="currentProgress">
+	                          <div class="progress-bar" role="progressbar" style="width: 60%;"></div>
+	                        </div>
+	                      </div>
+<!-- 	                      <div class="col-md-1">
+	                        <a class="btn btn-primary"><i class="fa fa-fw fa-repeat"></i></a>
+	                      </div>
+	                      <div class="col-md-1">
+	                        <a class="btn btn-primary"><i class="fa fa-fw fa-random"></i></a>
+	                      </div> -->
+	                    </div>
+	                  </div>
+	                </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <div class="modal" id="volumer">
+    	<div id="cont" data-pct="100" style="display:none">
+	    	<svg id="svg" width="200" height="200" viewPort="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg">
+	    	  <circle r="90" cx="100" cy="100" fill="transparent" stroke-dasharray="565.48" stroke-dashoffset="0"></circle>
+	    	  <circle id="bar" r="90" cx="100" cy="100" fill="transparent" stroke-dasharray="565.48" stroke-dashoffset="0"></circle>
+	    	</svg>
+    	</div>
+    </div>
+
+	<div class="modal" style="" id="searchPanel">
+	    <div class="modal-dialog">
+	        <div class="modal-content">
+	            <div class="modal-header">
+	                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+	                <h4 class="modal-title">Search Results</h4></div>
+	            <div class="modal-body">
+<!-- 	                <ul class="list-group">
+	                	<li class="list-group-item">
+		                	<div class="col-md-2">
+		                		<a class="btn"><i class="fa fa-fw fa-play"></i></a>
+		                	</div>
+
+		                	<div class="col-md-9">
+		                		<span>HI</span>
+		                	</div>
+		                	<div class="col-md-1">
+		                		<a class="btn"><i class="fa fa-fw fa-plus"></i>HI</a>
+		                	</div>
+	                	</li>
+	                	<li class="list-group-item">
+		                	<div class="col-md-2">
+		                		<a class="btn"><i class="fa fa-fw fa-play"></i></a>
+		                	</div>
+
+		                	<div class="col-md-9">
+		                		<span>HI</span>
+		                	</div>
+		                	<div class="col-md-1">
+		                		<a class="btn"><i class="fa fa-fw fa-plus"></i>HI</a>
+		                	</div>
+	                	</li>
+	                </ul> -->
+	                <ul class="list-group">
+	                  <li class="list-group-item">
+	                    <span class="label label-default label-pill pull-md-right">14</span>
+	                    Cras justo odio
+	                  </li>
+	                  <li class="list-group-item">
+	                    <span class="label label-default label-pill pull-md-right">2</span>
+	                    Dapibus ac facilisis in
+	                  </li>
+	                  <li class="list-group-item">
+	                    <span class="label label-default label-pill pull-md-right">1</span>
+	                    Morbi leo risus
+	                  </li>
+	                </ul>
+	            </div>
+	            <div class="modal-footer"><a class="btn btn-primary">Close</a></div>
+	        </div>
+	    </div>
+	</div>
+
+    <audio id="audio" src=""></audio>
+</body>
+
+</html>
