@@ -1,5 +1,11 @@
 
 /* PINGENDO COMMENT DO NOT REMOVE */
+#ulMain, #image{
+  -webkit-user-select: none;  /* Chrome all / Safari all */
+  -moz-user-select: none;     /* Firefox all */
+  -ms-user-select: none;      /* IE 10+ */
+  user-select: none; 
+}
 .mainRow{
   margin-top: 15px;
 }
@@ -200,4 +206,3 @@ body{
 .modal-content{
   background: rgba(255, 255, 255, 0.8);
 }
-background: rgba(255, 255, 255, 0.8);

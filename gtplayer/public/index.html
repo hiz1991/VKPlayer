@@ -24,6 +24,7 @@
 	var VKMusic={}
 	var testVar;
 	var toggleVKSearchEnabled=false;
+	var $animation;
 
 	mousewheelevt = (/Firefox/i.test(navigator.userAgent)) ? "DOMMouseScroll" : "mousewheel"
 	// $(".playlist, #youtube, #stats, #bgChanger, #uploadFrameDisplayer").on(mousewheelevt, function(e) {
@@ -47,7 +48,7 @@
 
 	function initiateVK() {
 	    VK.init({
-	      apiId: 4148557
+	      apiId: 4152682
 	    });
 	    loginVK(); //alert("wonder");
 	  };
@@ -403,6 +404,15 @@
 		  });
 
 	}
+
+	function playOrPause(){
+		// if(playShown)
+		playShown = !playShown;
+		showPlayIcon($animation, playShown)
+		if(playShown) Player.pause()
+		else Player.continue()
+	}
+
 	function showPlayIcon($animation,bool){
 		if(!$animation) $animation = $("#animation")
 		playShown = bool
@@ -420,14 +430,7 @@
 
 	   showPlayIcon($animation, true)
 
-		$("."+classReceived).on('click', function() {
-		   // if(playShown)
-		   playShown = !playShown;
-		   showPlayIcon($animation, playShown)
-		   if(playShown) Player.pause()
-		   else Player.continue()
-
-		});
+		$("."+classReceived).on('click', playOrPause);
 
 	}
 	function progressCircle(percent){
@@ -498,6 +501,9 @@
 			initBounceButtons("#image img")
 			// initToggling({class:"toggPlay"})
 			initiMorphPlayPause("ytp-play-button", "#animation")
+			$(document).dblclick(function() {
+			    playOrPause();
+			});
 			Loader.img = $("#image img")
 			$('#cont').on(mousewheelevt, volumeScroll);
 			var lock=false;
@@ -543,7 +549,7 @@
     <div class="navbar navbar-default navbar-static-top">
         <div class="container">
             <div class="navbar-header">
-                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar-ex-collapse"><span class="sr-only">Toggle navigation</span><span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span></button><a class="navbar-brand" href="#"><span>VKPLayer</span></a></div>
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar-ex-collapse"><span class="sr-only">Toggle navigation</span><span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span></button><a class="navbar-brand" href="#"><span>GTPLayer</span></a></div>
             <div class="collapse navbar-collapse" id="navbar-ex-collapse">
                 <ul class="nav navbar-nav navbar-right">
                     <li id="loginButton"class="" onclick="initiateVK()"><a href="#"><i class="fa fa-1x fa-fw fa-vk"></i> Connect</a></li>
@@ -573,7 +579,7 @@
                                       </li>
                                     </ul>
                                 </div>
-                                <div class="col-md-8">
+                                <div class="col-md-8 hidden-xs">
                                 	<div class="btn-group imageMainControls">
                                 	              <a href="#" class="btn btn-default" onclick="flipArtwork('artwork', 'lyricsContainer')"><i class="fa fa-fw fa-image"></i><br></a>
                                 	              <a href="#" id="lyricsShowButton" class="btn btn-default disabled" onclick="flipArtwork('lyricsContainer', 'artwork')"><i class="fa fa-fw fa-font"></i></a>
@@ -592,11 +598,11 @@
     <footer class="section section-primary">
         <div class="container">
             <div class="row">
-                <div class="col-md-12">
+                <div class="col-md-12 col-xs-12">
 	                <div class="section">
 	                  <div class="container">
 	                    <div class="row">
-	                      <div class="col-md-1">
+	                      <div class="col-md-1 col-xs-3">
 	                      <button class="ytp-play-button ytp-button btn" aria-live="assertive" tabindex="32" aria-label="Pause">
 	                         <svg width="100%" viewBox="0 0 36 36" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 	                            <defs>
@@ -612,12 +618,12 @@
 	                        <!-- <a id="playButton" class="btn btn-primary toggPlay" onclick="Player.continue()"><i class="fa fa-fw fa-play"></i></a>
 	                        <a id="pauseButton" class="btn btn-primary toggPlay" onclick="Player.pause()"><i class="fa fa-fw fa-pause"></i></a> -->
 	                      </div>
-	                      <div class="col-md-11" id="barsCont">
+	                      <div class="col-md-11 col-xs-9" id="barsCont">
 	                        <div class="progress" id="buffer">
-	                          <div class="progress-bar" role="progressbar" style="width: 60%;"></div>
+	                          <div class="progress-bar" role="progressbar" style="width: 0%;"></div>
 	                        </div>
 	                        <div class="progress" id="currentProgress">
-	                          <div class="progress-bar" role="progressbar" style="width: 60%;"></div>
+	                          <div class="progress-bar" role="progressbar" style="width: 0%;"></div>
 	                        </div>
 	                      </div>
 <!-- 	                      <div class="col-md-1">
