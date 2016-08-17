@@ -1,0 +1,1 @@
+cp -r ./dev/public/ ./public & parse deploy

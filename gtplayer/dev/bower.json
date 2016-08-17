@@ -1,0 +1,10 @@
+{
+  "name": "mcmakler-frontend-test",
+  "version": "0.1",
+  "ignore": [],
+  "dependencies": {
+    "jquery": "2.0.3", 
+    "bootstrap":"3.3.4", 
+    "gsap":"1.12.1"
+  }
+}
